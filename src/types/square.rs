@@ -72,3 +72,86 @@ impl Square {
         Bitboard(1u64 << (self as u8))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::types::{Bitboard, File, Rank, Square};
+
+    #[test]
+    fn square_new() {
+        assert_eq!(Square::new(File::A, Rank::First), Square::A1);
+        assert_eq!(Square::new(File::H, Rank::First), Square::H1);
+        assert_eq!(Square::new(File::A, Rank::Eighth), Square::A8);
+        assert_eq!(Square::new(File::H, Rank::Eighth), Square::H8);
+        assert_eq!(Square::new(File::E, Rank::Fourth), Square::E4);
+    }
+
+    #[test]
+    fn square_new_round_trip() {
+        for &sq in Square::ALL {
+            assert_eq!(Square::new(sq.file(), sq.rank()), sq);
+        }
+    }
+
+    #[test]
+    fn square_flip_file() {
+        assert_eq!(Square::A1.flip_file(), Square::H1);
+        assert_eq!(Square::H1.flip_file(), Square::A1);
+        assert_eq!(Square::A8.flip_file(), Square::H8);
+        assert_eq!(Square::H8.flip_file(), Square::A8);
+        assert_eq!(Square::E4.flip_file(), Square::D4);
+    }
+
+    #[test]
+    fn square_flip_rank() {
+        assert_eq!(Square::A1.flip_rank(), Square::A8);
+        assert_eq!(Square::H1.flip_rank(), Square::H8);
+        assert_eq!(Square::A8.flip_rank(), Square::A1);
+        assert_eq!(Square::H8.flip_rank(), Square::H1);
+        assert_eq!(Square::E4.flip_rank(), Square::E5);
+    }
+
+    #[test]
+    fn square_double_flip_file() {
+        for &sq in Square::ALL {
+            assert_eq!(sq.flip_file().flip_file(), sq);
+        }
+    }
+
+    #[test]
+    fn square_double_flip_rank() {
+        for &sq in Square::ALL {
+            assert_eq!(sq.flip_rank().flip_rank(), sq);
+        }
+    }
+    
+    #[test]
+    fn square_bitboard_unique() {
+        let mut bb = Bitboard::EMPTY;
+        
+        for sq in Square::ALL.map(|sq| sq.bitboard()) {
+            assert!(bb.is_disjoint(sq));
+            bb |= sq;
+        }
+        
+        assert_eq!(bb, Bitboard::FULL)
+    }
+
+    #[test]
+    fn square_file() {
+        assert_eq!(Square::A1.file(), File::A);
+        assert_eq!(Square::H1.file(), File::H);
+        assert_eq!(Square::A8.file(), File::A);
+        assert_eq!(Square::H8.file(), File::H);
+        assert_eq!(Square::E4.file(), File::E);
+    }
+
+    #[test]
+    fn square_rank() {
+        assert_eq!(Square::A1.rank(), Rank::First);
+        assert_eq!(Square::H1.rank(), Rank::First);
+        assert_eq!(Square::A8.rank(), Rank::Eighth);
+        assert_eq!(Square::H8.rank(), Rank::Eighth);
+        assert_eq!(Square::E4.rank(), Rank::Fourth);
+    }
+}

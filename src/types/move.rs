@@ -94,3 +94,71 @@ impl MoveFlag {
         (self as u8 & 0x8) != 0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::types::{MoveFlag, Piece};
+
+    #[test]
+    fn move_flags() {
+        let flags = [
+            MoveFlag::Normal,
+            MoveFlag::DoublePush,
+            MoveFlag::LongCastling,
+            MoveFlag::ShortCastling,
+            MoveFlag::PromotionQueen,
+            MoveFlag::PromotionRook,
+            MoveFlag::PromotionBishop,
+            MoveFlag::PromotionKnight,
+            MoveFlag::Capture,
+            MoveFlag::EnPassant,
+            MoveFlag::CapturePromotionQueen,
+            MoveFlag::CapturePromotionRook,
+            MoveFlag::CapturePromotionBishop,
+            MoveFlag::CapturePromotionKnight,
+        ];
+
+        let expected_promo = [
+            None,
+            None,
+            None,
+            None,
+            Some(Piece::Queen),
+            Some(Piece::Rook),
+            Some(Piece::Bishop),
+            Some(Piece::Knight),
+            None,
+            None,
+            Some(Piece::Queen),
+            Some(Piece::Rook),
+            Some(Piece::Bishop),
+            Some(Piece::Knight),
+        ];
+
+        for (&flag, &expected_promo) in flags.iter().zip(expected_promo.iter()) {
+            assert_eq!(flag.promotion(), expected_promo);
+            assert_eq!(flag.is_promotion(), expected_promo.is_some());
+        }
+
+        let expected_capture = [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+        ];
+
+        for (&flag, &expected_capture) in flags.iter().zip(expected_capture.iter()) {
+            assert_eq!(flag.is_capture(), expected_capture);
+        }
+    }
+}

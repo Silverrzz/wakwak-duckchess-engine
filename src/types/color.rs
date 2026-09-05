@@ -21,3 +21,14 @@ impl Not for Color {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::types::Color;
+
+    #[test]
+    fn color_flip() {
+        assert_eq!(!Color::White, Color::Black);
+        assert_eq!(!Color::Black, Color::White);
+    }
+}

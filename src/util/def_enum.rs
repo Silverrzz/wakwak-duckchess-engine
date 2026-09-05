@@ -20,6 +20,13 @@ macro_rules! def_enum {
 
         impl $name {
             #[inline]
+            $vis const unsafe fn index_unchecked(i: u8) -> Self {
+                // SAFETY: `i < Self::COUNT`'
+
+                unsafe { ::core::mem::transmute(i) }
+            }
+
+            #[inline]
             $vis const fn index(i: usize) -> Self {
                 Self::try_index(i).expect(concat!(stringify!($name), "::index(i) Index out of bounds"))
             }
@@ -27,7 +34,7 @@ macro_rules! def_enum {
             #[inline]
             $vis const fn try_index(i: usize) -> Option<Self> {
                 if i < Self::COUNT {
-                    return Some(Self::index(i));
+                    return Some(unsafe { Self::index_unchecked(i as u8) });
                 }
 
                 None

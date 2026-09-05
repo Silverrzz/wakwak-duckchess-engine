@@ -1,10 +1,15 @@
 use crate::types::Square;
 use std::ops::*;
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
+    #[inline]
+    pub const fn iter(self) -> BitboardIter {
+        BitboardIter(self)
+    }
+
     #[inline]
     pub const fn next(self) -> Square {
         self.try_next()
@@ -192,5 +197,124 @@ impl ExactSizeIterator for BitboardIter {
     #[inline]
     fn len(&self) -> usize {
         self.0.popcnt()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::types::{Bitboard, Square};
+
+    #[test]
+    fn bitboard_empty() {
+        assert!(Bitboard::EMPTY.is_empty());
+        assert!(!Bitboard::EMPTY.is_nonempty());
+
+        assert!(!Bitboard::FULL.is_empty());
+        assert!(Bitboard::FULL.is_nonempty());
+
+        assert!(!Square::E4.bitboard().is_empty());
+        assert!(Square::E4.bitboard().is_nonempty());
+    }
+
+    #[test]
+    fn bitboard_popcnt() {
+        assert_eq!(Bitboard::EMPTY.popcnt(), 0);
+        assert_eq!(Bitboard::FULL.popcnt(), 64);
+
+        assert_eq!(Bitboard(0b1010).popcnt(), 2);
+        assert_eq!(Square::E4.bitboard().popcnt(), 1);
+    }
+
+    #[test]
+    fn bitboard_try_next() {
+        assert_eq!(Bitboard::EMPTY.try_next(), None);
+        assert_eq!(Bitboard::EMPTY.try_next_back(), None);
+
+        let bb = Square::A1.bitboard() | Square::E4.bitboard() | Square::H8.bitboard();
+
+        assert_eq!(bb.try_next(), Some(Square::A1));
+        assert_eq!(bb.try_next_back(), Some(Square::H8));
+    }
+
+    #[test]
+    #[should_panic]
+    fn bitboard_next_panics() {
+        Bitboard::EMPTY.next();
+    }
+
+    #[test]
+    #[should_panic]
+    fn bitboard_next_back_panics() {
+        Bitboard::EMPTY.next_back();
+    }
+
+    #[test]
+    fn bitboard_subset_superset() {
+        let a = Bitboard(0b0011);
+        let b = Bitboard(0b0111);
+        let c = Bitboard(0b1000);
+
+        assert!(a.is_subset(b));
+        assert!(b.is_superset(a));
+
+        assert!(!b.is_subset(a));
+        assert!(!a.is_superset(b));
+
+        assert!(a.is_subset(a));
+        assert!(a.is_superset(a));
+
+        assert!(!a.is_subset(c));
+        assert!(!a.is_superset(c));
+        assert!(!b.is_subset(c));
+        assert!(!b.is_superset(c));
+    }
+
+    #[test]
+    fn bitboard_disjoint() {
+        let a = Bitboard(0b0011);
+        let b = Bitboard(0b1100);
+        let c = Bitboard(0b0110);
+
+        assert!(a.is_disjoint(b));
+        assert!(b.is_disjoint(a));
+        assert!(!a.is_disjoint(c));
+        assert!(!b.is_disjoint(c));
+        assert!(Bitboard::EMPTY.is_disjoint(Bitboard::FULL));
+    }
+
+    #[test]
+    fn bitboard_has_sq() {
+        let bb = Square::E4.bitboard() | Square::H8.bitboard();
+
+        assert!(bb.has(Square::E4));
+        assert!(bb.has(Square::H8));
+        assert!(!bb.has(Square::A1));
+        assert!(!bb.has(Square::D4));
+    }
+
+    #[test]
+    fn iter_ascending() {
+        let bb = Square::A1.bitboard() | Square::E4.bitboard() | Square::H8.bitboard();
+        let expected = vec![Square::A1, Square::E4, Square::H8];
+        let squares: Vec<Square> = bb.iter().collect();
+
+        assert_eq!(squares, expected);
+    }
+
+    #[test]
+    fn iter_descending() {
+        let bb = Square::A1.bitboard() | Square::E4.bitboard() | Square::H8.bitboard();
+        let expected = vec![Square::H8, Square::E4, Square::A1];
+        let squares: Vec<Square> = bb.iter().rev().collect();
+
+        assert_eq!(squares, expected);
+    }
+
+    #[test]
+    fn iter_empty() {
+        let mut iter = Bitboard::EMPTY.iter();
+
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next_back(), None);
     }
 }

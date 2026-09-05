@@ -45,3 +45,75 @@ impl Rank {
         Bitboard(0xff << (8 * self as u8))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::types::{Bitboard, Rank};
+
+    #[test]
+    fn rank_try_offset() {
+        assert_eq!(Rank::First.try_offset(-1), None);
+        assert_eq!(Rank::First.try_offset(0), Some(Rank::First));
+        assert_eq!(Rank::First.try_offset(1), Some(Rank::Second));
+
+        assert_eq!(Rank::Fourth.try_offset(-1), Some(Rank::Third));
+        assert_eq!(Rank::Fourth.try_offset(0), Some(Rank::Fourth));
+        assert_eq!(Rank::Fourth.try_offset(1), Some(Rank::Fifth));
+
+        assert_eq!(Rank::Eighth.try_offset(-7), Some(Rank::First));
+        assert_eq!(Rank::Eighth.try_offset(-1), Some(Rank::Seventh));
+        assert_eq!(Rank::Eighth.try_offset(0), Some(Rank::Eighth));
+        assert_eq!(Rank::Eighth.try_offset(1), None);
+    }
+    
+    #[test]
+    fn rank_offset() {
+        assert_eq!(Rank::First.offset(0), Rank::First);
+        assert_eq!(Rank::First.offset(1), Rank::Second);
+        assert_eq!(Rank::First.offset(7), Rank::Eighth);
+
+        assert_eq!(Rank::Fourth.offset(-1), Rank::Third);
+        assert_eq!(Rank::Fourth.offset(0), Rank::Fourth);
+        assert_eq!(Rank::Fourth.offset(1), Rank::Fifth);
+
+        assert_eq!(Rank::Eighth.offset(-7), Rank::First);
+        assert_eq!(Rank::Eighth.offset(-1), Rank::Seventh);
+        assert_eq!(Rank::Eighth.offset(0), Rank::Eighth);
+    }
+
+    #[test]
+    #[should_panic]
+    fn rank_offset_panics_first() {
+        Rank::First.offset(-1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn rank_offset_panics_eighth() {
+        Rank::Eighth.offset(1);
+    }
+    
+    #[test]
+    fn rank_flip() {
+        assert_eq!(Rank::First.flip(), Rank::Eighth);
+        assert_eq!(Rank::Second.flip(), Rank::Seventh);
+        assert_eq!(Rank::Third.flip(), Rank::Sixth);
+        assert_eq!(Rank::Fourth.flip(), Rank::Fifth);
+        assert_eq!(Rank::Fifth.flip(), Rank::Fourth);
+        assert_eq!(Rank::Sixth.flip(), Rank::Third);
+        assert_eq!(Rank::Seventh.flip(), Rank::Second);
+        assert_eq!(Rank::Eighth.flip(), Rank::First);
+    }
+    
+    #[test]
+    fn rank_bitboard_unique() {
+        let mut bb = Bitboard::EMPTY;
+
+        for r in Rank::ALL.map(|r| r.bitboard()) {
+            assert!(bb.is_disjoint(r));
+            bb |= r;
+        }
+
+        assert_eq!(bb, Bitboard::FULL);
+    }
+}
