@@ -41,9 +41,11 @@ impl Board {
                 } else {
                     if p == '*' {
                         let sq = Square::new(File::try_index(file)?, rank);
-                        if let Some(_) = board.duck.replace(sq) {
+                        if board.duck.is_some() {
                             return None;
                         }
+
+                        board.set_duck(Some(sq));
                     } else {
                         let piece = p.try_into().ok()?;
                         let color = Color::index(p.is_ascii_lowercase() as usize);

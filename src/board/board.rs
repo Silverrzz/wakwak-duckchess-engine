@@ -91,6 +91,11 @@ impl Board {
     }
 
     #[inline]
+    pub fn hash(&self) -> u64 {
+        self.hash
+    }
+    
+    #[inline]
     pub fn duck(&self) -> Option<Square> {
         self.duck
     }
@@ -180,6 +185,17 @@ impl Board {
 
         if let Some(ep) = en_passant {
             self.hash ^= ZOBRIST.en_passant(ep.file());
+        }
+    }
+
+    #[inline]
+    pub fn set_duck(&mut self, duck: Option<Square>) {
+        if let Some(prev) = core::mem::replace(&mut self.duck, duck) {
+            self.hash ^= ZOBRIST.duck(prev);
+        }
+
+        if let Some(sq) = duck {
+            self.hash ^= ZOBRIST.duck(sq);
         }
     }
 

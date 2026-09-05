@@ -30,6 +30,7 @@ pub struct Zobrist {
     pub pieces: [[[u64; Square::COUNT]; Piece::COUNT]; Color::COUNT],
     pub castling_rights: [[u64; File::COUNT]; Color::COUNT],
     pub en_passant: [u64; File::COUNT],
+    pub duck: [u64; Square::COUNT],
     pub stm: u64,
 }
 
@@ -41,6 +42,7 @@ impl Zobrist {
             pieces: [[[0; Square::COUNT]; Piece::COUNT]; Color::COUNT],
             castling_rights: [[0; File::COUNT]; Color::COUNT],
             en_passant: [0; File::COUNT],
+            duck: [0; Square::COUNT],
             stm: 0,
         };
 
@@ -51,6 +53,7 @@ impl Zobrist {
                 let mut sq = 0;
                 while sq < Square::COUNT {
                     zobrist.pieces[color][piece][sq] = rng.next();
+                    zobrist.duck[sq] = rng.next();
                     sq += 1;
                 }
 
@@ -84,6 +87,11 @@ impl Zobrist {
     #[inline]
     pub const fn en_passant(&self, file: File) -> u64 {
         self.en_passant[file as usize]
+    }
+
+    #[inline]
+    pub const fn duck(&self, sq: Square) -> u64 {
+        self.duck[sq as usize]
     }
 }
 
