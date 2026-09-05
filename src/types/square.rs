@@ -1,8 +1,9 @@
 use crate::def_enum;
-use crate::types::bitboard::Bitboard;
+use crate::types::{Bitboard, File, Rank};
+use enum_map::Enum;
 
 def_enum! {
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Enum)]
     #[rustfmt::skip]
     pub enum Square : u8 {
         A1, B1, C1, D1, E1, F1, G1, H1,
@@ -17,6 +18,16 @@ def_enum! {
 }
 
 impl Square {
+    #[inline]
+    pub const fn file(self) -> File {
+        File::index(self as usize & 7)
+    }
+
+    #[inline]
+    pub const fn rank(self) -> Rank {
+        Rank::index(self as usize >> 3)
+    }
+
     #[inline]
     pub const fn bitboard(self) -> Bitboard {
         Bitboard(1u64 << (self as u8))

@@ -1,4 +1,4 @@
-use crate::types::square::Square;
+use crate::types::Square;
 use std::ops::*;
 
 #[derive(Copy, Clone, PartialEq, Eq)]

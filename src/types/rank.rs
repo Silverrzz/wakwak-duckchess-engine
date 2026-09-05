@@ -1,8 +1,9 @@
 use crate::def_enum;
-use crate::types::bitboard::Bitboard;
+use crate::types::Bitboard;
+use enum_map::Enum;
 
 def_enum! {
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Enum)]
     pub enum Rank : u8 {
         First,
         Second,
