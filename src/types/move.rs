@@ -1,8 +1,7 @@
 use crate::types::{Piece, Square};
 use std::num::NonZeroU32;
 
-/// A duck chess move.
-/// Bit Layout:
+/// A duck chess move. Bit Layout:
 /// - Bits 0-5: Source Square
 /// - Bits 6-11: Target Square
 /// - Bits 12-17: Duck Square

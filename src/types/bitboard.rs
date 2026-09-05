@@ -19,7 +19,7 @@ impl Bitboard {
     #[inline]
     pub const fn next_back(self) -> Square {
         self.try_next_back()
-            .expect("Bitboard::next() called on an empty Bitboard")
+            .expect("Bitboard::next_back() called on an empty Bitboard")
     }
 
     #[inline]
@@ -43,6 +43,16 @@ impl Bitboard {
     }
 
     #[inline]
+    pub const fn is_empty(self) -> bool {
+        self.0 == 0
+    }
+
+    #[inline]
+    pub const fn is_nonempty(self) -> bool {
+        self.0 != 0
+    }
+
+    #[inline]
     pub const fn popcnt(self) -> usize {
         self.0.count_ones() as usize
     }
@@ -50,11 +60,6 @@ impl Bitboard {
     #[inline]
     pub const fn has(self, sq: Square) -> bool {
         !self.is_disjoint(sq.bitboard())
-    }
-
-    #[inline]
-    pub const fn is_empty(self) -> bool {
-        self.0 == 0
     }
 
     pub const EMPTY: Bitboard = Bitboard(0);

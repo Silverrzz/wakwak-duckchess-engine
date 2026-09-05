@@ -1,5 +1,5 @@
 use crate::def_enum;
-use crate::types::{Bitboard, File, Rank};
+use crate::types::{Bitboard, Color, File, Rank};
 use enum_map::Enum;
 
 def_enum! {
@@ -18,6 +18,45 @@ def_enum! {
 }
 
 impl Square {
+    #[inline]
+    pub const fn new(file: File, rank: Rank) -> Self {
+        Self::index(((rank as usize) << 3) | file as usize)
+    }
+
+    #[inline]
+    pub fn try_offset(self, dx: isize, dy: isize) -> Option<Self> {
+        Some(Self::new(
+            self.file().try_offset(dx)?,
+            self.rank().try_offset(dy)?,
+        ))
+    }
+
+    #[inline]
+    pub fn offset(self, dx: isize, dy: isize) -> Self {
+        Self::new(
+            self.file().try_offset(dx).expect("Square::offset(dx, dy) New file index out of bounds"),
+            self.rank().try_offset(dy).expect("Square::offset(dx, dy) New rank index out of bounds"),
+        )
+    }
+
+    #[inline]
+    pub const fn flip_file(self) -> Self {
+        Self::index(self as usize ^ 7)
+    }
+
+    #[inline]
+    pub const fn flip_rank(self) -> Self {
+        Self::index(self as usize ^ 56)
+    }
+
+    #[inline]
+    pub const fn relative_to(self, color: Color) -> Self {
+        match color {
+            Color::White => self,
+            Color::Black => self.flip_rank(),
+        }
+    }
+
     #[inline]
     pub const fn file(self) -> File {
         File::index(self as usize & 7)
