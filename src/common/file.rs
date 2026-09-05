@@ -1,6 +1,8 @@
+use crate::common::{Bitboard, Color, Square};
 use crate::def_enum;
-use crate::types::Bitboard;
+use core::fmt;
 use enum_map::Enum;
+use std::fmt::Formatter;
 
 def_enum! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Enum)]
@@ -18,13 +20,14 @@ def_enum! {
 
 impl File {
     #[inline]
-    pub fn try_offset(self, dx: isize) -> Option<Self> {
+    pub const fn try_offset(self, dx: isize) -> Option<Self> {
         Self::try_index((self as usize).wrapping_add_signed(dx))
     }
 
     #[inline]
-    pub fn offset(self, dx: isize) -> Self {
-        self.try_offset(dx).expect("File::offset(dx) New index out of bounds")
+    pub const fn offset(self, dx: isize) -> Self {
+        self.try_offset(dx)
+            .expect("File::offset(dx) New index out of bounds")
     }
 
     #[inline]
@@ -38,9 +41,54 @@ impl File {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct FileParseError;
+
+impl From<File> for char {
+    #[inline]
+    fn from(file: File) -> Self {
+        match file {
+            File::A => 'a',
+            File::B => 'b',
+            File::C => 'c',
+            File::D => 'd',
+            File::E => 'e',
+            File::F => 'f',
+            File::G => 'g',
+            File::H => 'h',
+        }
+    }
+}
+
+impl TryFrom<char> for File {
+    type Error = FileParseError;
+
+    #[inline]
+    fn try_from(c: char) -> Result<Self, Self::Error> {
+        match c.to_ascii_lowercase() {
+            'a' => Ok(File::A),
+            'b' => Ok(File::B),
+            'c' => Ok(File::C),
+            'd' => Ok(File::D),
+            'e' => Ok(File::E),
+            'f' => Ok(File::F),
+            'g' => Ok(File::G),
+            'h' => Ok(File::H),
+            _ => Err(FileParseError),
+        }
+    }
+}
+
+impl fmt::Display for File {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", char::from(*self))
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::types::{Bitboard, File};
+    use crate::common::{Bitboard, File};
 
     #[test]
     fn file_try_offset() {

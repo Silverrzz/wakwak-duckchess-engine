@@ -1,6 +1,8 @@
+use crate::common::{Bitboard, Color, File};
 use crate::def_enum;
-use crate::types::{Bitboard, Color};
+use core::fmt;
 use enum_map::Enum;
+use std::fmt::Formatter;
 
 def_enum! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Enum)]
@@ -18,15 +20,16 @@ def_enum! {
 
 impl Rank {
     #[inline]
-    pub fn try_offset(self, dx: isize) -> Option<Self> {
+    pub const fn try_offset(self, dx: isize) -> Option<Self> {
         Self::try_index((self as usize).wrapping_add_signed(dx))
     }
 
     #[inline]
-    pub fn offset(self, dx: isize) -> Self {
-        self.try_offset(dx).expect("Rank::offset(dx) New index out of bounds")
+    pub const fn offset(self, dx: isize) -> Self {
+        self.try_offset(dx)
+            .expect("Rank::offset(dx) New index out of bounds")
     }
-    
+
     #[inline]
     pub const fn flip(self) -> Self {
         Self::index(Rank::Eighth as usize - self as usize)
@@ -46,9 +49,37 @@ impl Rank {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct RankParseError;
+
+impl From<Rank> for char {
+    #[inline]
+    fn from(rank: Rank) -> Self {
+        char::from(b'1' + rank as u8)
+    }
+}
+
+impl TryFrom<char> for Rank {
+    type Error = RankParseError;
+
+    #[inline]
+    fn try_from(c: char) -> Result<Self, Self::Error> {
+        c.to_digit(10)
+            .and_then(|i| Rank::try_index(i as usize))
+            .ok_or(RankParseError)
+    }
+}
+
+impl fmt::Display for Rank {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", char::from(*self))
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::types::{Bitboard, Rank};
+    use crate::common::{Bitboard, Rank};
 
     #[test]
     fn rank_try_offset() {
@@ -65,7 +96,7 @@ mod tests {
         assert_eq!(Rank::Eighth.try_offset(0), Some(Rank::Eighth));
         assert_eq!(Rank::Eighth.try_offset(1), None);
     }
-    
+
     #[test]
     fn rank_offset() {
         assert_eq!(Rank::First.offset(0), Rank::First);
@@ -92,7 +123,7 @@ mod tests {
     fn rank_offset_panics_eighth() {
         Rank::Eighth.offset(1);
     }
-    
+
     #[test]
     fn rank_flip() {
         assert_eq!(Rank::First.flip(), Rank::Eighth);
@@ -104,7 +135,7 @@ mod tests {
         assert_eq!(Rank::Seventh.flip(), Rank::Second);
         assert_eq!(Rank::Eighth.flip(), Rank::First);
     }
-    
+
     #[test]
     fn rank_bitboard_unique() {
         let mut bb = Bitboard::EMPTY;

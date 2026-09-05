@@ -1,4 +1,4 @@
-use crate::types::{Piece, Square};
+use crate::common::{Piece, Square};
 use std::num::NonZeroU32;
 
 /// A duck chess move. Bit Layout:
@@ -97,7 +97,7 @@ impl MoveFlag {
 
 #[cfg(test)]
 mod tests {
-    use crate::types::{MoveFlag, Piece};
+    use crate::common::{MoveFlag, Piece};
 
     #[test]
     fn move_flags() {
@@ -141,19 +141,7 @@ mod tests {
         }
 
         let expected_capture = [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            true,
-            true,
-            true,
-            true,
-            true,
+            false, false, false, false, false, false, false, false, true, true, true, true, true,
             true,
         ];
 

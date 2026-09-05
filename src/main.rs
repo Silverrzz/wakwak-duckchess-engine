@@ -1,5 +1,5 @@
 pub mod board;
-pub mod types;
+pub mod common;
 pub mod util;
 
 fn main() {

@@ -1,6 +1,9 @@
+use crate::common::{Bitboard, Color, File, Rank};
 use crate::def_enum;
-use crate::types::{Bitboard, Color, File, Rank};
+use core::fmt;
 use enum_map::Enum;
+use std::fmt::Formatter;
+use std::str::FromStr;
 
 def_enum! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Enum)]
@@ -24,18 +27,22 @@ impl Square {
     }
 
     #[inline]
-    pub fn try_offset(self, dx: isize, dy: isize) -> Option<Self> {
-        Some(Self::new(
-            self.file().try_offset(dx)?,
-            self.rank().try_offset(dy)?,
-        ))
+    pub const fn try_offset(self, dx: isize, dy: isize) -> Option<Self> {
+        match (self.file().try_offset(dx), self.rank().try_offset(dy)) {
+            (Some(file), Some(rank)) => Some(Self::new(file, rank)),
+            _ => None,
+        }
     }
 
     #[inline]
-    pub fn offset(self, dx: isize, dy: isize) -> Self {
+    pub const fn offset(self, dx: isize, dy: isize) -> Self {
         Self::new(
-            self.file().try_offset(dx).expect("Square::offset(dx, dy) New file index out of bounds"),
-            self.rank().try_offset(dy).expect("Square::offset(dx, dy) New rank index out of bounds"),
+            self.file()
+                .try_offset(dx)
+                .expect("Square::offset(dx, dy) New file index out of bounds"),
+            self.rank()
+                .try_offset(dy)
+                .expect("Square::offset(dx, dy) New rank index out of bounds"),
         )
     }
 
@@ -73,9 +80,41 @@ impl Square {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum SquareParseError {
+    FileParseError,
+    RankParseError,
+}
+
+impl FromStr for Square {
+    type Err = SquareParseError;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut chars = s.chars();
+        let file = chars
+            .next()
+            .and_then(|c| File::try_from(c).ok())
+            .ok_or(SquareParseError::FileParseError)?;
+        let rank = chars
+            .next()
+            .and_then(|c| Rank::try_from(c).ok())
+            .ok_or(SquareParseError::RankParseError)?;
+
+        Ok(Self::new(file, rank))
+    }
+}
+
+impl fmt::Display for Square {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}{}", self.file(), self.rank())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::types::{Bitboard, File, Rank, Square};
+    use crate::common::{Bitboard, File, Rank, Square};
 
     #[test]
     fn square_new() {
@@ -124,16 +163,16 @@ mod tests {
             assert_eq!(sq.flip_rank().flip_rank(), sq);
         }
     }
-    
+
     #[test]
     fn square_bitboard_unique() {
         let mut bb = Bitboard::EMPTY;
-        
+
         for sq in Square::ALL.map(|sq| sq.bitboard()) {
             assert!(bb.is_disjoint(sq));
             bb |= sq;
         }
-        
+
         assert_eq!(bb, Bitboard::FULL)
     }
 

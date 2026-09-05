@@ -20,7 +20,7 @@ macro_rules! def_enum {
 
         impl $name {
             #[inline]
-            $vis const unsafe fn index_unchecked(i: u8) -> Self {
+            $vis const unsafe fn index_unchecked(i: $int_ty) -> Self {
                 // SAFETY: `i < Self::COUNT`'
 
                 unsafe { ::core::mem::transmute(i) }
@@ -34,7 +34,7 @@ macro_rules! def_enum {
             #[inline]
             $vis const fn try_index(i: usize) -> Option<Self> {
                 if i < Self::COUNT {
-                    return Some(unsafe { Self::index_unchecked(i as u8) });
+                    return Some(unsafe { Self::index_unchecked(i as $int_ty) });
                 }
 
                 None

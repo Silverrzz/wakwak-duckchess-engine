@@ -1,10 +1,34 @@
-use crate::types::Square;
+use crate::common::{Direction, File, Rank, Square, horizontal_shift_mask};
 use std::ops::*;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
+    #[inline]
+    pub const fn shift<D: Direction>(self, steps: i8) -> Bitboard {
+        let mask = horizontal_shift_mask(D::DX * steps);
+        let shift = (D::DX + D::DY * 8) * steps;
+
+        //`shl` takes an `isize` as a parameter but panics if you try to shift by a negative number.
+        Bitboard(if shift > 0 {
+            (self.0 << shift) & mask
+        } else {
+            (self.0 >> -shift) & mask
+        })
+    }
+
+    #[inline]
+    pub const fn smear<D: Direction>(self) -> Bitboard {
+        let mut result = self;
+
+        result.0 |= result.shift::<D>(1).0;
+        result.0 |= result.shift::<D>(2).0;
+        result.0 |= result.shift::<D>(4).0;
+
+        result
+    }
+
     #[inline]
     pub const fn iter(self) -> BitboardIter {
         BitboardIter(self)
@@ -71,6 +95,16 @@ impl Bitboard {
     pub const FULL: Bitboard = Bitboard(u64::MAX);
 }
 
+impl IntoIterator for Bitboard {
+    type Item = Square;
+    type IntoIter = BitboardIter;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 impl Not for Bitboard {
     type Output = Self;
 
@@ -90,6 +124,33 @@ macro_rules! impl_bb_ops {
                 Bitboard(self.0.$fn(rhs.0))
             }
         }
+
+        impl $trait<File> for Bitboard {
+            type Output = Self;
+
+            #[inline]
+            fn $fn(self, rhs: File) -> Self::Output {
+                self.$fn(rhs.bitboard())
+            }
+        }
+
+        impl $trait<Rank> for Bitboard {
+            type Output = Self;
+
+            #[inline]
+            fn $fn(self, rhs: Rank) -> Self::Output {
+                self.$fn(rhs.bitboard())
+            }
+        }
+
+        impl $trait<Square> for Bitboard {
+            type Output = Self;
+
+            #[inline]
+            fn $fn(self, rhs: Square) -> Self::Output {
+                self.$fn(rhs.bitboard())
+            }
+        }
     )*}
 }
 
@@ -99,6 +160,27 @@ macro_rules! impl_bb_assign_ops {
             #[inline]
             fn $fn(&mut self, rhs: Self) {
                 self.0.$fn(rhs.0);
+            }
+        }
+
+        impl $trait<File> for Bitboard {
+            #[inline]
+            fn $fn(&mut self, rhs: File) {
+                self.$fn(rhs.bitboard());
+            }
+        }
+
+        impl $trait<Rank> for Bitboard {
+            #[inline]
+            fn $fn(&mut self, rhs: Rank) {
+                self.$fn(rhs.bitboard());
+            }
+        }
+
+        impl $trait<Square> for Bitboard {
+            #[inline]
+            fn $fn(&mut self, rhs: Square) {
+                self.$fn(rhs.bitboard());
             }
         }
     )*}
@@ -202,7 +284,10 @@ impl ExactSizeIterator for BitboardIter {
 
 #[cfg(test)]
 mod tests {
-    use crate::types::{Bitboard, Square};
+    use crate::common::{
+        Bitboard, East, File, North, NorthEast, NorthWest, South, SouthEast, SouthWest, Square,
+        West,
+    };
 
     #[test]
     fn bitboard_empty() {
@@ -293,7 +378,7 @@ mod tests {
     }
 
     #[test]
-    fn iter_ascending() {
+    fn bitboard_iter_ascending() {
         let bb = Square::A1.bitboard() | Square::E4.bitboard() | Square::H8.bitboard();
         let expected = vec![Square::A1, Square::E4, Square::H8];
         let squares: Vec<Square> = bb.iter().collect();
@@ -302,7 +387,7 @@ mod tests {
     }
 
     #[test]
-    fn iter_descending() {
+    fn bitboard_iter_descending() {
         let bb = Square::A1.bitboard() | Square::E4.bitboard() | Square::H8.bitboard();
         let expected = vec![Square::H8, Square::E4, Square::A1];
         let squares: Vec<Square> = bb.iter().rev().collect();
@@ -311,10 +396,84 @@ mod tests {
     }
 
     #[test]
-    fn iter_empty() {
+    fn bitboard_iter_empty() {
         let mut iter = Bitboard::EMPTY.iter();
 
         assert_eq!(iter.next(), None);
         assert_eq!(iter.next_back(), None);
+    }
+
+    #[test]
+    fn bitboard_shift() {
+        assert_eq!(
+            Square::E4.bitboard().shift::<North>(1),
+            Square::E5.bitboard()
+        );
+        assert_eq!(
+            Square::E4.bitboard().shift::<NorthEast>(1),
+            Square::F5.bitboard()
+        );
+        assert_eq!(
+            Square::E4.bitboard().shift::<East>(1),
+            Square::F4.bitboard()
+        );
+        assert_eq!(
+            Square::E4.bitboard().shift::<SouthEast>(1),
+            Square::F3.bitboard()
+        );
+        assert_eq!(
+            Square::E4.bitboard().shift::<South>(1),
+            Square::E3.bitboard()
+        );
+        assert_eq!(
+            Square::E4.bitboard().shift::<SouthWest>(1),
+            Square::D3.bitboard()
+        );
+        assert_eq!(
+            Square::E4.bitboard().shift::<West>(1),
+            Square::D4.bitboard()
+        );
+        assert_eq!(
+            Square::E4.bitboard().shift::<NorthWest>(1),
+            Square::D5.bitboard()
+        );
+    }
+
+    #[test]
+    fn bitboard_smear() {
+        assert_eq!(
+            Square::E4.bitboard().smear::<North>(),
+            Bitboard(0x1010101010000000)
+        );
+        assert_eq!(
+            Square::E4.bitboard().smear::<NorthEast>(),
+            Bitboard(0x80402010000000)
+        );
+        assert_eq!(Square::E4.bitboard().smear::<East>(), Bitboard(0xF0000000));
+        assert_eq!(
+            Square::E4.bitboard().smear::<SouthEast>(),
+            Bitboard(0x10204080)
+        );
+        assert_eq!(Square::E4.bitboard().smear::<South>(), Bitboard(0x10101010));
+        assert_eq!(
+            Square::E4.bitboard().smear::<SouthWest>(),
+            Bitboard(0x10080402)
+        );
+        assert_eq!(Square::E4.bitboard().smear::<West>(), Bitboard(0x1F000000));
+        assert_eq!(
+            Square::E4.bitboard().smear::<NorthWest>(),
+            Bitboard(0x102040810000000)
+        );
+
+        assert_eq!(File::A.bitboard().smear::<East>(), Bitboard::FULL);
+        assert_eq!(
+            File::A.bitboard().smear::<SouthEast>(),
+            Bitboard(0x103070F1F3F7FFF)
+        );
+        assert_eq!(File::H.bitboard().smear::<West>(), Bitboard::FULL);
+        assert_eq!(
+            File::H.bitboard().smear::<NorthWest>(),
+            Bitboard(0xFFFEFCF8F0E0C080)
+        );
     }
 }
