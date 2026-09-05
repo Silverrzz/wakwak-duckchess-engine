@@ -21,7 +21,7 @@ macro_rules! def_enum {
         impl $name {
             #[inline]
             $vis const fn index(i: usize) -> Self {
-                unsafe { ::core::mem::transmute(i as $int_ty) }
+                Self::try_index(i).expect(concat!(stringify!($name), "::index(i) Index out of bounds"))
             }
 
             #[inline]

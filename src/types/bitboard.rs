@@ -1,5 +1,5 @@
-use std::ops::*;
 use crate::types::square::Square;
+use std::ops::*;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Bitboard(pub u64);
@@ -7,7 +7,8 @@ pub struct Bitboard(pub u64);
 impl Bitboard {
     #[inline]
     pub const fn next(self) -> Square {
-        self.try_next().expect("Bitboard::next() called on an empty Bitboard")
+        self.try_next()
+            .expect("Bitboard::next() called on an empty Bitboard")
     }
 
     #[inline]
@@ -17,7 +18,8 @@ impl Bitboard {
 
     #[inline]
     pub const fn next_back(self) -> Square {
-        self.try_next_back().expect("Bitboard::next() called on an empty Bitboard")
+        self.try_next_back()
+            .expect("Bitboard::next() called on an empty Bitboard")
     }
 
     #[inline]
@@ -99,7 +101,7 @@ macro_rules! impl_bb_shift_ops {
 
             #[inline]
             fn shl(self, rhs: $ty) -> Self::Output {
-                Bitboard(self.0 << rhs) & Bitboard::FULL
+                Bitboard(self.0 << rhs)
             }
         }
 
@@ -116,7 +118,6 @@ macro_rules! impl_bb_shift_ops {
             #[inline]
             fn shl_assign(&mut self, rhs: $ty) {
                 self.0 <<= rhs;
-                *self &= Bitboard::FULL;
             }
         }
 
