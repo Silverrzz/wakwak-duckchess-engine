@@ -1,8 +1,8 @@
-use colored::Colorize;
 use crate::board::{Board, CastlingDirection};
 use crate::common::{Color, File, Rank, Square};
+use colored::Colorize;
 
-impl Board  {
+impl Board {
     #[inline]
     pub fn display(&self, frc: bool) {
         println!("╔═══╤═══╤═══╤═══╤═══╤═══╤═══╤═══╗");
@@ -17,7 +17,10 @@ impl Board  {
                     let piece: char = piece.into();
 
                     if self.color_on(sq).unwrap() == Color::White {
-                        print!(" {}", String::from(piece.to_ascii_uppercase()).bright_green());
+                        print!(
+                            " {}",
+                            String::from(piece.to_ascii_uppercase()).bright_green()
+                        );
                     } else {
                         print!(" {}", String::from(piece).bright_blue());
                     }
@@ -46,7 +49,11 @@ impl Board  {
             print!("  {} ", char::from(file).to_ascii_uppercase());
         }
 
-        println!("\n\n{}: {}", String::from("FEN").bright_green(), self.to_fen(frc));
+        println!(
+            "\n\n{}: {}",
+            String::from("FEN").bright_green(),
+            self.to_fen(frc)
+        );
         println!(
             "{}: {:#016X}",
             String::from("Zobrist Key").bright_green(),

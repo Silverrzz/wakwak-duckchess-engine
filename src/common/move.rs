@@ -1,4 +1,6 @@
-use crate::common::{Piece, Square};
+use crate::board::{Board, CastlingDirection};
+use crate::common::{Bitboard, File, Piece, Rank, Square};
+use std::fmt::Write;
 use std::num::NonZeroU32;
 
 /// A duck chess move. Bit Layout:
@@ -7,6 +9,7 @@ use std::num::NonZeroU32;
 /// - Bits 12-17: Duck Square
 /// - Bits 18-21: Move Flag
 /// - Bits 22-31: Unused
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Move(NonZeroU32);
 
 impl Move {
@@ -42,6 +45,181 @@ impl Move {
 
         unsafe { core::mem::transmute((self.0.get() >> 18) as u8) }
     }
+
+    #[inline]
+    pub fn display(self, dumb_interface: bool) -> String {
+        let mut out = String::new();
+        write!(out, "{}{}", self.src(), self.dest()).unwrap();
+
+        if let Some(promotion) = self.flag().promotion() {
+            write!(out, "{}", promotion).unwrap();
+        }
+
+        if dumb_interface {
+            write!(out, ",{}{}", self.dest(), self.duck()).unwrap(); //just why
+        } else {
+            write!(out, "@{}", self.duck()).unwrap();
+        }
+
+        out
+    }
+
+    #[inline]
+    pub fn parse(board: &Board, str: &str) -> Option<Move> {
+        let src = str.get(0..2)?.parse::<Square>().ok()?;
+        let mut dest = str.get(2..4)?.parse::<Square>().ok()?;
+        let promotion = if let Some(c) = str.chars().nth(4) {
+            let piece = c.try_into().ok()?;
+
+            Some(piece)
+                .filter(|p| [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen].contains(p))
+        } else {
+            None
+        };
+        let duck = str.get(6..8)?.parse::<Square>().ok()?;
+
+        if duck == dest {
+            return None;
+        }
+
+        let is_capture = board.piece_on(dest).is_some();
+        let flag = match board.piece_on(src)? {
+            Piece::Pawn => Self::parse_pawn_flag(board, src, dest, duck, promotion, is_capture)?,
+            Piece::King => Self::parse_king_flag(board, src, &mut dest, duck, is_capture)?,
+            _ => {
+                if !(board.occupied() ^ src).has(duck) {
+                    if is_capture {
+                        MoveFlag::Capture
+                    } else {
+                        MoveFlag::Normal
+                    }
+                } else {
+                    return None;
+                }
+            }
+        };
+
+        Some(Move::new(src, dest, duck, flag))
+    }
+
+    #[inline]
+    fn parse_pawn_flag(
+        board: &Board,
+        src: Square,
+        dest: Square,
+        duck: Square,
+        promotion: Option<Piece>,
+        is_capture: bool,
+    ) -> Option<MoveFlag> {
+        let stm = board.stm();
+
+        if let Some(promotion) = promotion {
+            if is_capture {
+                MoveFlag::new_capture_promotion(promotion)
+            } else {
+                MoveFlag::new_promotion(promotion)
+            }
+        } else if is_capture {
+            Some(MoveFlag::Capture)
+        } else if let Some(en_passant) = board.en_passant()
+            && dest == Square::new(en_passant.file(), Rank::Sixth.relative_to(stm))
+        {
+            let blockers = board.occupied()
+                ^ Square::new(en_passant.file(), Rank::Fifth.relative_to(stm))
+                ^ dest
+                ^ src;
+            if !blockers.has(duck) {
+                Some(MoveFlag::EnPassant)
+            } else {
+                None
+            }
+        } else if src.rank() == Rank::Second.relative_to(stm)
+            && dest.rank() == Rank::Fourth.relative_to(stm)
+        {
+            Some(MoveFlag::DoublePush)
+        } else {
+            Some(MoveFlag::Normal)
+        }
+    }
+
+    #[inline]
+    fn parse_king_flag(
+        board: &Board,
+        src: Square,
+        dest: &mut Square,
+        duck: Square,
+        is_capture: bool,
+    ) -> Option<MoveFlag> {
+        let stm = board.stm();
+        let our_back_rank = Rank::First.relative_to(stm);
+
+        if is_capture {
+            return if board.color_on(*dest) == Some(stm) {
+                let rights = board.castling_rights(stm);
+
+                if Some(*dest)
+                    == rights
+                        .get(CastlingDirection::Short)
+                        .map(|f| Square::new(f, our_back_rank))
+                {
+                    let blockers = board.occupied() ^ src ^ *dest ^ Bitboard(0x60).relative_to(stm);
+                    if !blockers.has(duck) {
+                        Some(MoveFlag::ShortCastling)
+                    } else {
+                        None
+                    }
+                } else if Some(*dest)
+                    == rights
+                        .get(CastlingDirection::Long)
+                        .map(|f| Square::new(f, our_back_rank))
+                {
+                    let blockers = board.occupied() ^ src ^ *dest ^ Bitboard(0x6).relative_to(stm);
+                    if !blockers.has(duck) {
+                        Some(MoveFlag::LongCastling)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                Some(MoveFlag::Capture)
+            };
+        }
+
+        let castling_src = Square::new(File::E, our_back_rank);
+        if src == castling_src {
+            let rights = board.castling_rights(stm);
+            let short_dest = Square::new(File::G, our_back_rank);
+            let long_dest = Square::new(File::C, our_back_rank);
+
+            if let Some(rook_src) = rights.get(CastlingDirection::Short)
+                && *dest == short_dest
+            {
+                *dest = Square::new(rook_src, our_back_rank);
+
+                let blockers = board.occupied() ^ src ^ *dest ^ Bitboard(0x60).relative_to(stm);
+                return if !blockers.has(duck) {
+                    Some(MoveFlag::ShortCastling)
+                } else {
+                    None
+                };
+            } else if let Some(rook_src) = rights.get(CastlingDirection::Long)
+                && *dest == long_dest
+            {
+                *dest = Square::new(rook_src, our_back_rank);
+
+                let blockers = board.occupied() ^ src ^ *dest ^ Bitboard(0x6).relative_to(stm);
+                return if !blockers.has(duck) {
+                    Some(MoveFlag::LongCastling)
+                } else {
+                    None
+                };
+            }
+        }
+
+        Some(MoveFlag::Normal)
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -63,6 +241,28 @@ pub enum MoveFlag {
 }
 
 impl MoveFlag {
+    #[inline]
+    pub const fn new_promotion(piece: Piece) -> Option<MoveFlag> {
+        match piece {
+            Piece::Knight => Some(MoveFlag::PromotionKnight),
+            Piece::Bishop => Some(MoveFlag::PromotionBishop),
+            Piece::Rook => Some(MoveFlag::PromotionRook),
+            Piece::Queen => Some(MoveFlag::PromotionQueen),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub const fn new_capture_promotion(piece: Piece) -> Option<MoveFlag> {
+        match piece {
+            Piece::Knight => Some(MoveFlag::CapturePromotionKnight),
+            Piece::Bishop => Some(MoveFlag::CapturePromotionBishop),
+            Piece::Rook => Some(MoveFlag::CapturePromotionRook),
+            Piece::Queen => Some(MoveFlag::CapturePromotionQueen),
+            _ => None,
+        }
+    }
+
     #[inline]
     pub const fn promotion(self) -> Option<Piece> {
         if !self.is_promotion() {

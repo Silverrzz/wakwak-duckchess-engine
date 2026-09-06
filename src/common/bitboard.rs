@@ -1,4 +1,4 @@
-use crate::common::{Direction, File, Rank, Square, horizontal_shift_mask};
+use crate::common::{Color, Direction, File, Rank, Square, horizontal_shift_mask};
 use std::ops::*;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -27,6 +27,33 @@ impl Bitboard {
         result.0 |= result.shift::<D>(4).0;
 
         result
+    }
+
+    #[inline]
+    pub const fn flip_files(self) -> Bitboard {
+        const K1: u64 = 0x5555555555555555;
+        const K2: u64 = 0x3333333333333333;
+        const K4: u64 = 0x0F0F0F0F0F0F0F0F;
+
+        let mut result = self.0;
+        result = ((result >> 1) & K1) | ((result & K1) << 1);
+        result = ((result >> 2) & K2) | ((result & K2) << 2);
+        result = ((result >> 4) & K4) | ((result & K4) << 4);
+
+        Bitboard(result)
+    }
+
+    #[inline]
+    pub const fn flip_ranks(self) -> Bitboard {
+        Bitboard(self.0.swap_bytes())
+    }
+
+    #[inline]
+    pub const fn relative_to(self, color: Color) -> Bitboard {
+        match color {
+            Color::White => self,
+            Color::Black => self.flip_ranks(),
+        }
     }
 
     #[inline]

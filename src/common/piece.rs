@@ -1,8 +1,6 @@
-use crate::common::File;
 use crate::def_enum;
-use core::fmt;
 use enum_map::Enum;
-use std::fmt::Formatter;
+use std::fmt;
 
 def_enum! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Enum)]
@@ -52,7 +50,7 @@ impl TryFrom<char> for Piece {
 
 impl fmt::Display for Piece {
     #[inline]
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", char::from(*self))
     }
 }

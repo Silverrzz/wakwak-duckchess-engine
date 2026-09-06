@@ -1,8 +1,7 @@
 use crate::common::{Bitboard, Color, File, Rank};
 use crate::def_enum;
-use core::fmt;
 use enum_map::Enum;
-use std::fmt::Formatter;
+use std::fmt;
 use std::str::FromStr;
 
 def_enum! {
@@ -107,7 +106,7 @@ impl FromStr for Square {
 
 impl fmt::Display for Square {
     #[inline]
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}{}", self.file(), self.rank())
     }
 }

@@ -94,7 +94,7 @@ impl Board {
     pub fn hash(&self) -> u64 {
         self.hash
     }
-    
+
     #[inline]
     pub fn duck(&self) -> Option<Square> {
         self.duck
