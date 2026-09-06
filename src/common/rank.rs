@@ -64,7 +64,7 @@ impl TryFrom<char> for Rank {
     #[inline]
     fn try_from(c: char) -> Result<Self, Self::Error> {
         c.to_digit(10)
-            .and_then(|i| Rank::try_index(i as usize))
+            .and_then(|i| Rank::try_index((i - 1) as usize))
             .ok_or(RankParseError)
     }
 }
