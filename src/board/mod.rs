@@ -3,6 +3,7 @@ pub mod castling;
 pub mod display;
 pub mod en_passant;
 pub mod fen;
+pub mod startpos;
 pub mod zobrist;
 
 pub use board::*;

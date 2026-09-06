@@ -77,7 +77,9 @@ impl Move {
             match str.chars().nth(4) {
                 Some(',') => (None, str.get(7..9)?.parse::<Square>().ok()?),
                 Some(c) => (
-                    c.try_into().ok().filter(|p| [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen].contains(p)),
+                    c.try_into().ok().filter(|p| {
+                        [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen].contains(p)
+                    }),
                     str.get(8..10)?.parse::<Square>().ok()?,
                 ),
                 None => return None,
@@ -86,7 +88,9 @@ impl Move {
             match str.chars().nth(4) {
                 Some('@') => (None, str.get(5..7)?.parse::<Square>().ok()?),
                 Some(c) => (
-                    c.try_into().ok().filter(|p| [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen].contains(p)),
+                    c.try_into().ok().filter(|p| {
+                        [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen].contains(p)
+                    }),
                     str.get(6..8)?.parse::<Square>().ok()?,
                 ),
                 None => return None,
