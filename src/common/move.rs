@@ -65,18 +65,33 @@ impl Move {
     }
 
     #[inline]
-    pub fn parse(board: &Board, str: &str) -> Option<Move> {
+    pub fn parse(board: &Board, dumb_interface: bool, str: &str) -> Option<Move> {
+        if str.len() < 7 {
+            return None;
+        }
+
         let src = str.get(0..2)?.parse::<Square>().ok()?;
         let mut dest = str.get(2..4)?.parse::<Square>().ok()?;
-        let promotion = if let Some(c) = str.chars().nth(4) {
-            let piece = c.try_into().ok()?;
 
-            Some(piece)
-                .filter(|p| [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen].contains(p))
+        let (promotion, duck) = if dumb_interface {
+            match str.chars().nth(4) {
+                Some(',') => (None, str.get(7..9)?.parse::<Square>().ok()?),
+                Some(c) => (
+                    c.try_into().ok().filter(|p| [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen].contains(p)),
+                    str.get(8..10)?.parse::<Square>().ok()?,
+                ),
+                None => return None,
+            }
         } else {
-            None
+            match str.chars().nth(4) {
+                Some('@') => (None, str.get(5..7)?.parse::<Square>().ok()?),
+                Some(c) => (
+                    c.try_into().ok().filter(|p| [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen].contains(p)),
+                    str.get(6..8)?.parse::<Square>().ok()?,
+                ),
+                None => return None,
+            }
         };
-        let duck = str.get(6..8)?.parse::<Square>().ok()?;
 
         if duck == dest {
             return None;
